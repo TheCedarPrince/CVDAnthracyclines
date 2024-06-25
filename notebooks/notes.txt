@@ -1,0 +1,6 @@
+Date of myocardial infarction
+Id	       Code
+1034820	   LP98863-1
+40761337   58236-1
+
+[1034820,40761337]
