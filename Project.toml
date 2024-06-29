@@ -7,6 +7,7 @@ HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
 OMOPCDMCohortCreator = "f525a15e-a73f-4eef-870f-f901257eae22"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Weave = "44d3d7a6-8a23-5bf8-98c5-b353f8df5ec9"
 
 [compat]
