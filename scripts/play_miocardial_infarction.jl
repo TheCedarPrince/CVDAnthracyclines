@@ -19,6 +19,7 @@ includet("sql_functions/demographic_etc.jl")
 includet("sql_functions/drugs.jl")
 includet("sql_functions/labs.jl")
 includet("sql_functions/observations_visits.jl")
+includet("sql_functions/procedures.jl")
 
 conn = connect(
     Connection, 
@@ -65,7 +66,7 @@ we want to select single patient in the selected cohort and single visit of this
 and display in human readle form all information about this patient including drugs,procedure, events and so on 
 """
 
-get_drugs_of_person(conn, mio_infarct_patient_ids[9])
+drugs=get_drugs_of_person(conn, mio_infarct_patient_ids[9])
 measuremants=get_measurement_per_person(conn, mio_infarct_patient_ids[1])[!,"concept_name"]
 unique(measuremants)
 
@@ -74,9 +75,87 @@ unique(conditions)
 
 
 
-get_distinct_onco_conditions(conn)
+get_distinct_onco_conditions(conn)[!,"concept_name"]
+
+get_distinct_device_exposure(conn)[!,"concept_name"]
+get_distinct_procedure_occurrence(conn)[!,"concept_name"]
+
+#general plan
+"""
+PLAN
+1. get all patients with miocardial infarction based on manually selected conditions from atlas
+2. select only those that have some oncologic conditions; based on conditions table
+3. for each patient get all procedures, drugs, conditions, measurements
+4. we try to map all of them to snomed and get distinct only 
+5. we manually choose variables of intrest and group them
+6. we are intrested for now with only patients that has miocardial infarction after oncologic diagnosis
+7. from cohort in 6. we want to get subcohort of patients that has miocardial infarction also before oncologic diagnosis
+"""
+
+#drugs
+"""
+we want to map all drug concepts to atc as it supports grouping of drugs
+look here https://forums.ohdsi.org/t/mapping-rxnorm-to-atc-with-mapping-in-concept-relationship/18104
+so we want to get atc class in order to group all drugs of the same group like for example glicocorticosteroids
+getting mapping of current drugs to atc is possible through relation and ancestor table 
+1) we get all drugs from "omop.drug_era" table we return columns "person_id", "drug_concept_id", and the name of "drug_concept_id" that we get by 
+    querying "omop.concept" table where "concept_id" is equal to "drug_concept_id"
+2) we check what vocabulary is "drug_concept_id" in "omop.drug_era"  by checking "omop.vocabulary" and return in select 
+    "vocabulary_name" from "omop.vocabulary" table where "vocabulary_id" is equal to "drug_concept_id" in "omop.drug_era" table
+3) we analyze in "omop.concept_relationship" table rows where "concept_id_1" in  "omop.concept_relationship" is equal 
+    to "drug_concept_id" in "omop.drug_era" we are intrested in  all relationships with string "- ATC" in in value of column "relationship_id" given "drug_concept_id"
+    then we will get "concept_id_2" from "omop.concept_relationship" as one translated to atc;
+4) we get ancestors of "concept_id_2" (by checking those that are equal to "ancestor_concept_id") in "omop.concept_ancestor" table and we return "ancestor_concept_id" and "ancestor_concept_name" 
+    from "omop.concept" table where "concept_id" is equal to "ancestor_concept_id" in "omop.concept_ancestor" table and we return also "max_levels_of_separation" (we rename in return "max_levels_of_separation" into "max_levels_of_separation_ancestor") from "omop.concept_ancestor" table
+5)we get ancestors of "concept_id_2" (by checking those that are equal to "descendant_concept_id") in "omop.concept_ancestor" table and we return "descendant_concept_id" and "descendant_concept_name" 
+    from "omop.concept" table where "concept_id" is equal to "descendant_concept_id" in "omop.concept_ancestor" table and we return also "max_levels_of_separation" (we rename in return "max_levels_of_separation" into "max_levels_of_separation_dscendant") from "omop.concept_ancestor" table
+
+"""
+drugs_ids=get_drugs_of_person(conn, mio_infarct_patient_ids[3])[!,"drug_concept_id"]
 
 
+df_for_atc=get_atc_level_of_drug(conn,drugs_ids[1])
+ppath="/home/jakubmitura/projects/CVDAnthracyclines/data/debug_atc.csv"
+CSV.write(ppath, df_for_atc)
+
+
+drugs_ids=get_drugs_of_person(conn, mio_infarct_patient_ids[3])[!,"drug_concept_id"]
+
+dff=get_drug_rx_to_atc_rel(conn,drugs_ids[3])
+dff
+idss=dff[!,"concept_id_2_id"]
+get_ancestors(conn, idss[1])
+get_standard_concept(conn, idss[1])
+get_ancestors(conn, 21604180)
+
+unique(get_drug_rx_to_atc_rel(conn, idss[1])[!,"relationship_id"])
+
+df_anc=get_all_drug_ancestors(conn)
+df_anc
+unique(df_anc[!,"max_levels_of_separation"])
+sep_level=2
+df_anc[(df_anc.max_levels_of_separation .== sep_level) .& (df_anc.min_levels_of_separation .== sep_level), :]
+
+
+length(dff[!,"relationship_name"])
+
+
+ppath="/home/jakubmitura/projects/CVDAnthracyclines/data/debug.csv"
+CSV.write(ppath, dff)
+
+
+"concept_id_1_code","concept_id_2_code"
+
+#procedures
+"""
+we want to map all to snomed get distinct and also look for ancestors to get more general procedures
+"""
+
+
+#measurements
+"""
+we want to map all to snomed get distinct and also look for ancestors to get more general measurements
+"""
 
 a
 

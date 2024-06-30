@@ -18,16 +18,21 @@ get a list of ancestor concepts of a given concept
 adapted from https://github.com/OHDSI/OMOP-Queries/blob/master/md/General.md
 """
 function get_ancestors(conn, concept_id)
-    sqq=""" SELECT C.concept_id as ancestor_concept_id
+    sqq=""" SELECT C.concept_id as ancestor_concept_id,C.concept_name,A.min_levels_of_separation,A.max_levels_of_separation,VA.vocabulary_name
     FROM omop.concept_ancestor A, omop.concept C, omop.vocabulary VA
     WHERE A.ancestor_concept_id = C.concept_id
     AND C.vocabulary_id = VA.vocabulary_id
     AND A.descendant_concept_id = $(concept_id)
     AND A.ancestor_concept_id<>A.descendant_concept_id
-    Limit 20 ;"""
+    """
     df=DBInterface.execute(conn, sqq) |> DataFrame
-    return df[!,:ancestor_concept_id]
+    return df
 end # get_ancestors
+
+
+
+
+
 
 ## get concept name
 """
@@ -97,3 +102,39 @@ function get_concept_relationship(conn, concept_id)
     df=DBInterface.execute(conn, sqq) |> DataFrame
     return df
 end # get_concept_relationship
+
+
+"""
+we want to get all relationships of the concept we are interested in
+so we look in table "omop.concept_relationship" for a row where "concept_id_1" is equal to
+queried concept_id then we get "relationship_id" and "concept_id_2"
+we return name of concept_id_1 and concept_id_2 that can be fould in table "omop.concept" like in example  ```SELECT concept_class_name,concept_class_id
+    FROM omop.concept_class
+    WHERE concept_class_id = concept_class_id)    Limit 1 ;```
+and relationship name that can be found in table "omop.relationship" like in example ```SELECT relationship_name
+    FROM omop.relationship
+    WHERE relationship_id = relationship_id)   
+     Limit 1 ;``    
+
+"""
+function get_related_concept_with_names(conn,concept_id_query)
+    sqq=""" SELECT DISTINCT
+    c1.concept_name AS concept_id_1_name, 
+    c2.concept_name AS concept_id_2_name, 
+    r.relationship_name,
+    cr.relationship_id
+    FROM 
+        omop.concept_relationship cr
+    JOIN 
+        omop.concept c1 ON cr.concept_id_1 = c1.concept_id
+    JOIN 
+        omop.concept c2 ON cr.concept_id_2 = c2.concept_id
+    JOIN 
+        omop.relationship r ON cr.relationship_id = r.relationship_id
+    WHERE 
+        cr.concept_id_1 = $(concept_id_query) OR cr.concept_id_2 = $(concept_id_query);
+        """
+    df=DBInterface.execute(conn, sqq) |> DataFrame
+    return df
+end # get_related_concept_with_names
+    

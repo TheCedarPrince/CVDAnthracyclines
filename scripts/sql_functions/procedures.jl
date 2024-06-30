@@ -46,3 +46,24 @@ function get_procedure_occurrence(conn, person_id)
     df=DBInterface.execute(conn, sqq) |> DataFrame
     return df
 end # get_procedure_occurrence
+
+
+function  get_distinct_device_exposure(conn)
+    sqq="""
+    SELECT DISTINCT c.concept_name
+    FROM omop.device_exposure co
+    JOIN omop.concept c ON co.device_concept_id = c.concept_id
+    """
+    df=DBInterface.execute(conn, sqq) |> DataFrame
+    return df
+end # get_distinct_device_exposure
+
+function  get_distinct_procedure_occurrence(conn)
+    sqq="""
+    SELECT DISTINCT c.concept_name
+    FROM omop.procedure_occurrence co
+    JOIN omop.concept c ON co.procedure_concept_id = c.concept_id
+    """
+    df=DBInterface.execute(conn, sqq) |> DataFrame
+    return df
+end # get_distinct_device_exposure

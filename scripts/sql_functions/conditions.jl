@@ -40,3 +40,5 @@ WHERE c.concept_name ILIKE '%onco%'
     df=DBInterface.execute(conn, sqq) |> DataFrame
     return df
 end # get_condition_occurrence
+
+domain_id
